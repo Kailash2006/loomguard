@@ -1,0 +1,8 @@
+# Model weights are downloaded at runtime from GitHub (see app/inference.py) to stay under Vercel's size limit.
+models/**/*.onnx
+models/**/*.npy
+notebooks/
+figures/
+tests/
+deploy/
+Dockerfile
