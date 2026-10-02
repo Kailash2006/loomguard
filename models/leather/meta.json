@@ -1,0 +1,34 @@
+{
+  "category": "leather",
+  "model": "stfpm-resnet18",
+  "img_size": 256,
+  "input": "RGB float32 in [0,1], NCHW",
+  "threshold": 0.021147048566490412,
+  "val_mean": 0.01635124906897545,
+  "val_std": 0.0015985998325049877,
+  "pixel_p50": 0.0004020357155241072,
+  "pixel_max": 0.019768327474594116,
+  "metrics": {
+    "image_auroc": 0.921875,
+    "pixel_auroc": 0.9855808341346727,
+    "precision": 1.0,
+    "recall": 0.7282608695652174,
+    "f1": 0.8427672955974843,
+    "false_alarm_rate": 0.0,
+    "oracle_best_f1": 0.9398907103825138,
+    "per_defect_detection": {
+      "color": 0.47368421052631576,
+      "cut": 0.6842105263157895,
+      "fold": 0.8235294117647058,
+      "glue": 0.7368421052631579,
+      "good": 1.0,
+      "poke": 0.9444444444444444
+    },
+    "fit_seconds": 268.2,
+    "gpu_latency_ms": 4.282065400002466,
+    "cpu_latency_ms": 38.46456999997372,
+    "onnx_size_mb": 21.2,
+    "onnx_rel_error": 1.103594300388977e-07
+  },
+  "trained_on": "MVTec AD (CC BY-NC-SA 4.0)"
+}

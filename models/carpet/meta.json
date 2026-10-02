@@ -1,0 +1,34 @@
+{
+  "category": "carpet",
+  "model": "patchcore-wide_resnet50_2",
+  "onnx_file": "patchcore.onnx",
+  "bank_file": "bank.npy",
+  "img_size": 256,
+  "input": "RGB float32 in [0,1], NCHW",
+  "threshold": 2.1055123313973274,
+  "val_mean": 1.5988834755761283,
+  "val_std": 0.1688762852737331,
+  "pixel_p50": 1.3495826721191406,
+  "pixel_max": 1.840482234954834,
+  "metrics": {
+    "image_auroc": 0.9903691813804173,
+    "pixel_auroc": 0.9882762559361834,
+    "precision": 1.0,
+    "recall": 0.8202247191011236,
+    "f1": 0.9012345679012346,
+    "false_alarm_rate": 0.0,
+    "per_defect_detection": {
+      "color": 0.9473684210526315,
+      "cut": 1.0,
+      "good": 1.0,
+      "hole": 0.9411764705882353,
+      "metal_contamination": 0.5294117647058824,
+      "thread": 0.6842105263157895
+    },
+    "cpu_latency_ms": 218.2705000000169,
+    "onnx_size_mb": 94.8,
+    "bank_size": 2580,
+    "onnx_rel_error": 0.0
+  },
+  "trained_on": "MVTec AD (CC BY-NC-SA 4.0)"
+}

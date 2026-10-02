@@ -1,0 +1,34 @@
+{
+  "category": "wood",
+  "model": "stfpm-resnet18",
+  "img_size": 256,
+  "input": "RGB float32 in [0,1], NCHW",
+  "threshold": 0.008093236247077584,
+  "val_mean": 0.002623399719595909,
+  "val_std": 0.0018232788424938917,
+  "pixel_p50": 0.00025500799529254436,
+  "pixel_max": 0.005800516810268164,
+  "metrics": {
+    "image_auroc": 1.0,
+    "pixel_auroc": 0.9461289291373131,
+    "precision": 1.0,
+    "recall": 0.9833333333333333,
+    "f1": 0.9915966386554622,
+    "false_alarm_rate": 0.0,
+    "oracle_best_f1": 1.0,
+    "per_defect_detection": {
+      "color": 1.0,
+      "combined": 1.0,
+      "good": 1.0,
+      "hole": 1.0,
+      "liquid": 1.0,
+      "scratch": 0.9523809523809523
+    },
+    "fit_seconds": 269.9,
+    "gpu_latency_ms": 4.534328139998252,
+    "cpu_latency_ms": 39.848605000088355,
+    "onnx_size_mb": 21.2,
+    "onnx_rel_error": 7.389535028323735e-08
+  },
+  "trained_on": "MVTec AD (CC BY-NC-SA 4.0)"
+}

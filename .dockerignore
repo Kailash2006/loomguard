@@ -1,0 +1,5 @@
+notebooks/
+figures/
+tests/
+.git/
+*.zip

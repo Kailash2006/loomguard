@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LoomGuard · fabric inspection</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --vat: #17224a;        /* indigo vat: page */
+  --dyed: #1f2d5c;       /* indigo-dyed cloth: panels */
+  --warp: #33427a;       /* thread lines */
+  --cotton: #eeeae0;     /* unbleached cotton: text */
+  --faded: #a9b0c9;      /* washed-out indigo: secondary text */
+  --neem: #6db58f;       /* pass */
+  --madder: #d9533f;     /* defect */
+  --turmeric: #e8b33a;   /* marginal / focus */
+  --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--vat); color: var(--cotton); font-family: var(--font);
+  font-size: 16px; line-height: 1.45; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--turmeric); outline-offset: 2px; }
+
+.shell { max-width: 1240px; margin: 0 auto; padding: 20px clamp(14px, 3vw, 32px) 40px; }
+
+header { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; padding-bottom: 18px;
+  border-bottom: 1px solid var(--warp); }
+.brand { font-stretch: 62%; font-weight: 800; font-size: 2.1rem; letter-spacing: .01em; margin: 0; line-height: 1; }
+.brand-sub { color: var(--faded); font-size: .95rem; }
+.fabrics { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.fabrics button { background: none; border: 1px solid var(--warp); border-radius: 999px; padding: 4px 14px;
+  cursor: pointer; color: var(--faded); }
+.fabrics button[aria-pressed="true"] { background: var(--cotton); color: var(--vat); border-color: var(--cotton); }
+
+main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr); gap: 28px; margin-top: 24px; }
+@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+
+/* Inspection viewport: framed by a woven warp/weft pattern */
+.loom { padding: 14px; border-radius: 6px;
+  background:
+    repeating-linear-gradient(90deg, rgba(238,234,224,.07) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(0deg, rgba(238,234,224,.05) 0 2px, transparent 2px 7px), var(--dyed); }
+.viewport { position: relative; aspect-ratio: 1; background: #0e1530; border-radius: 3px; overflow: hidden; }
+.viewport img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#heatImg { transition: opacity .15s; }
+.bbox { position: absolute; border: 2px solid var(--turmeric); border-radius: 2px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(10, 14, 30, .18); }
+.scan { position: absolute; left: 0; right: 0; height: 3px; top: 0; opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--turmeric), transparent); }
+.viewport.busy .scan { animation: scan .7s ease-in-out; }
+@keyframes scan { 0% { top: 0; opacity: 1; } 100% { top: calc(100% - 3px); opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .viewport.busy .scan { animation: none; } }
+video { display: none; }
+
+.empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 32px;
+  color: var(--faded); }
+.empty strong { color: var(--cotton); font-size: 1.15rem; display: block; margin-bottom: 6px; }
+.empty[hidden] { display: none; }
+.viewport.drag { outline: 2px dashed var(--turmeric); outline-offset: -10px; }
+
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.btn { background: var(--cotton); color: var(--vat); border: 0; border-radius: 4px; padding: 9px 16px;
+  font-weight: 650; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--cotton); border: 1px solid var(--warp); }
+.btn.live { background: var(--madder); color: #fff; }
+.opacity { display: flex; align-items: center; gap: 8px; margin-left: auto; color: var(--faded); font-size: .92rem; }
+input[type=range] { accent-color: var(--turmeric); width: 120px; }
+
+/* Swatches with pinked (zig-zag) edges, like fabric sample cards */
+.swatches-wrap { margin-top: 22px; }
+.swatches-wrap h2, .log h2 { font-size: 1rem; font-weight: 600; margin: 0 0 10px; color: var(--faded); }
+.swatches { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.swatch { flex: 0 0 auto; width: 92px; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.swatch img { width: 92px; height: 92px; object-fit: cover; display: block; }
+.swatch span { display: block; font-size: .82rem; color: var(--faded); margin-top: 4px; }
+.swatch:hover span, .swatch:focus-visible span { color: var(--cotton); }
+
+/* Verdict */
+.verdict { padding: 6px 0 22px; border-bottom: 1px solid var(--warp); }
+.verdict-word { font-stretch: 62%; font-weight: 800; font-size: clamp(4rem, 9vw, 7rem); line-height: .9;
+  margin: 0; color: var(--faded); }
+.verdict[data-state="pass"] .verdict-word { color: var(--neem); }
+.verdict[data-state="defect"] .verdict-word { color: var(--madder); }
+.verdict-note { margin: 10px 0 0; color: var(--faded); max-width: 40ch; }
+
+.gauge { margin-top: 22px; }
+.gauge-track { position: relative; height: 10px; background: var(--dyed); border-radius: 5px; }
+.gauge-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; width: 0;
+  background: var(--neem); transition: width .3s, background .3s; }
+.gauge-thr { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--cotton); left: 50%; }
+.gauge-legend { display: flex; justify-content: space-between; color: var(--faded); font-size: .82rem; margin-top: 6px; }
+
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 22px 0 0; }
+.facts div { border-left: 2px solid var(--warp); padding-left: 10px; }
+.facts dt { color: var(--faded); font-size: .85rem; }
+.facts dd { margin: 2px 0 0; font-stretch: 75%; font-weight: 700; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+
+.session { display: flex; gap: 18px; color: var(--faded); font-size: .92rem; margin-top: 24px; flex-wrap: wrap; }
+.session b { color: var(--cotton); font-variant-numeric: tabular-nums; }
+.linkbtn { background: none; border: 0; color: var(--faded); text-decoration: underline; cursor: pointer; padding: 0; }
+
+.log { margin-top: 22px; }
+.log ol { list-style: none; margin: 0; padding: 0; max-height: 330px; overflow-y: auto; }
+.log li { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center;
+  padding: 7px 0; border-top: 1px solid rgba(51, 66, 122, .6); }
+.log li img { width: 44px; height: 44px; object-fit: cover; border-radius: 2px; }
+.log .tag { font-weight: 650; }
+.log .tag.defect { color: var(--madder); } .log .tag.pass { color: var(--neem); }
+.log small { color: var(--faded); font-variant-numeric: tabular-nums; }
+.log-empty { color: var(--faded); font-size: .92rem; }
+
+.err { color: var(--madder); min-height: 1.4em; margin: 8px 0 0; font-size: .92rem; }
+footer { margin-top: 36px; color: var(--faded); font-size: .85rem; border-top: 1px solid var(--warp); padding-top: 14px; }
+footer a { color: var(--cotton); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <h1 class="brand">LoomGuard</h1>
+    <span class="brand-sub">Fabric defect inspection, trained only on defect-free cloth</span>
+    <nav class="fabrics" id="fabrics" aria-label="Fabric model"></nav>
+  </header>
+
+  <main>
+    <section aria-label="Inspection">
+      <div class="loom">
+        <div class="viewport" id="viewport">
+          <img id="baseImg" alt="" hidden>
+          <img id="heatImg" alt="Anomaly heatmap over the inspected fabric" hidden>
+          <div class="bbox" id="bbox" hidden></div>
+          <div class="scan"></div>
+          <div class="empty" id="empty">
+            <div><strong>Drop a fabric photo here</strong>or pick a sample below, or start the camera.</div>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="uploadBtn">Upload image</button>
+        <button class="btn ghost" id="camBtn">Start camera</button>
+        <input type="file" id="fileInput" accept="image/*" hidden>
+        <label class="opacity">Heatmap
+          <input type="range" id="opacity" min="0" max="100" value="100" aria-label="Heatmap opacity">
+        </label>
+      </div>
+      <p class="err" id="err" role="alert"></p>
+      <video id="video" playsinline muted></video>
+
+      <div class="swatches-wrap">
+        <h2>Test samples</h2>
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </section>
+
+    <aside aria-label="Result">
+      <div class="verdict" id="verdict" data-state="idle" aria-live="polite">
+        <p class="verdict-word" id="verdictWord">Ready</p>
+        <p class="verdict-note" id="verdictNote">Inspect an image to see whether it passes.</p>
+        <div class="gauge">
+          <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div><div class="gauge-thr"></div></div>
+          <div class="gauge-legend"><span>Normal</span><span>Threshold</span><span>2× threshold</span></div>
+        </div>
+      </div>
+      <dl class="facts">
+        <div><dt>Severity</dt><dd id="fSeverity">–</dd></div>
+        <div><dt>Affected area</dt><dd id="fArea">–</dd></div>
+        <div><dt>CPU time</dt><dd id="fLatency">–</dd></div>
+      </dl>
+      <div class="session">
+        <span>Inspected <b id="sCount">0</b></span>
+        <span>Defect rate <b id="sRate">0%</b></span>
+        <span>Mean time <b id="sLat">–</b></span>
+        <button class="linkbtn" id="resetBtn">Reset session</button>
+      </div>
+      <div class="log">
+        <h2>Roll log</h2>
+        <p class="log-empty" id="logEmpty">Inspections will be listed here.</p>
+        <ol id="log"></ol>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    Each fabric is served by its best model (STFPM student–teacher or PatchCore), exported to ONNX and running on CPU.
+    Trained on MVTec AD texture categories (CC BY-NC-SA 4.0). <span id="modelInfo"></span>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { category: null, models: [], busy: false, camera: null, camTimer: null };
+
+function pinked(teeth = 9, depth = 3) {
+  // Zig-zag polygon for all four edges (in %), like pinking-shear cut swatches.
+  const pts = [], step = 100 / teeth;
+  for (let i = 0; i < teeth; i++) pts.push(`${i * step}% 0%`, `${(i + .5) * step}% ${depth}%`);
+  pts.push(`100% 0%`);
+  for (let i = 0; i < teeth; i++) pts.push(`${100 - depth}% ${(i + .5) * step}%`, `100% ${(i + 1) * step}%`);
+  for (let i = 0; i < teeth; i++) pts.push(`${100 - (i + .5) * step}% ${100 - depth}%`, `${100 - (i + 1) * step}% 100%`);
+  for (let i = 0; i < teeth; i++) pts.push(`${depth}% ${100 - (i + .5) * step}%`, `0% ${100 - (i + 1) * step}%`);
+  return `polygon(${pts.join(",")})`;
+}
+const PINK = pinked();
+
+function showError(msg) { $("err").textContent = msg || ""; }
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    let detail = r.statusText;
+    try { detail = (await r.json()).detail || detail; } catch {}
+    throw new Error(detail);
+  }
+  return r.json();
+}
+
+async function loadModels() {
+  const { models, default: def } = await api("/api/models");
+  state.models = models;
+  if (!models.length) {
+    $("empty").innerHTML = "<div><strong>No model loaded yet</strong>Unzip the Kaggle output into the repo so that " +
+      "models/carpet/stfpm.onnx exists, then restart the server.</div>";
+    ["uploadBtn", "camBtn"].forEach((id) => ($(id).disabled = true));
+    return;
+  }
+  const nav = $("fabrics");
+  nav.innerHTML = "";
+  models.forEach((m) => {
+    const b = document.createElement("button");
+    b.textContent = m.category[0].toUpperCase() + m.category.slice(1);
+    b.setAttribute("aria-pressed", "false");
+    b.onclick = () => selectCategory(m.category);
+    b.dataset.cat = m.category;
+    nav.appendChild(b);
+  });
+  selectCategory(def);
+}
+
+async function selectCategory(cat) {
+  state.category = cat;
+  document.querySelectorAll("#fabrics button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.cat === cat));
+  const m = state.models.find((x) => x.category === cat);
+  $("modelInfo").textContent = m && m.image_auroc
+    ? `This ${cat} model (${m.model.startsWith("patchcore") ? "PatchCore" : "STFPM"}): image AUROC ${(m.image_auroc * 100).toFixed(1)}%, pixel AUROC ${(m.pixel_auroc * 100).toFixed(1)}%.` : "";
+  const { samples } = await api(`/api/samples?category=${encodeURIComponent(cat)}`);
+  const row = $("swatches");
+  row.innerHTML = samples.length ? "" : '<p class="log-empty">No samples for this fabric. Upload your own image.</p>';
+  samples.forEach((s) => {
+    const b = document.createElement("button");
+    b.className = "swatch";
+    b.innerHTML = `<img src="${s.url}" alt="" style="clip-path:${PINK}"><span>${s.kind === "good" ? "Defect-free" : s.kind.replace(/_/g, " ")}</span>`;
+    b.onclick = async () => inspectBlob(await (await fetch(s.url)).blob(), "sample");
+    row.appendChild(b);
+  });
+}
+
+async function inspectBlob(blob, source = "upload") {
+  if (state.busy || !state.category) return;
+  state.busy = true; showError();
+  const vp = $("viewport");
+  if (source !== "camera") { vp.classList.remove("busy"); void vp.offsetWidth; vp.classList.add("busy"); }
+  const fd = new FormData();
+  fd.append("file", blob, "image.jpg");
+  fd.append("category", state.category);
+  fd.append("source", source);
+  try {
+    const r = await api("/api/inspect", { method: "POST", body: fd });
+    render(r, URL.createObjectURL(blob));
+    refreshStats();
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    state.busy = false;
+  }
+}
+
+function render(r, rawUrl) {
+  $("empty").hidden = true;
+  const base = $("baseImg"), heat = $("heatImg");
+  if (base.dataset.url) URL.revokeObjectURL(base.dataset.url);
+  base.src = rawUrl; base.dataset.url = rawUrl; base.hidden = false;
+  heat.src = r.heatmap; heat.hidden = false;
+  heat.style.opacity = $("opacity").value / 100;
+
+  const bb = $("bbox");
+  if (r.bbox) {
+    const [x0, y0, x1, y1] = r.bbox.map((v) => (v / 512) * 100);
+    Object.assign(bb.style, { left: x0 + "%", top: y0 + "%", width: x1 - x0 + "%", height: y1 - y0 + "%" });
+    bb.hidden = false;
+  } else bb.hidden = true;
+
+  const v = $("verdict");
+  v.dataset.state = r.is_defect ? "defect" : "pass";
+  $("verdictWord").textContent = r.is_defect ? "Defect" : "Pass";
+  $("verdictNote").textContent = r.is_defect
+    ? `Anomaly score is ${r.severity.toFixed(2)}× the threshold. The highlighted area differs from normal ${r.category}.`
+    : `Anomaly score is ${(r.severity * 100).toFixed(0)}% of the threshold. Nothing unusual found.`;
+  const fill = $("gaugeFill");
+  fill.style.width = Math.min(r.severity / 2, 1) * 100 + "%";
+  fill.style.background = r.is_defect ? "var(--madder)" : r.severity > 0.8 ? "var(--turmeric)" : "var(--neem)";
+  $("fSeverity").textContent = r.severity.toFixed(2) + "×";
+  $("fArea").textContent = r.affected_area_pct.toFixed(1) + "%";
+  $("fLatency").textContent = r.latency_ms.toFixed(0) + " ms";
+  addLog(r);
+}
+
+function addLog(r) {
+  $("logEmpty").hidden = true;
+  const li = document.createElement("li");
+  const t = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  li.innerHTML = `<img src="${r.heatmap}" alt=""><div><span class="tag ${r.is_defect ? "defect" : "pass"}">` +
+    `${r.is_defect ? "Defect" : "Pass"}</span> <small>${r.category} · ${t}</small></div>` +
+    `<small>${r.severity.toFixed(2)}× · ${r.latency_ms.toFixed(0)} ms</small>`;
+  const log = $("log");
+  log.prepend(li);
+  while (log.children.length > 30) log.lastChild.remove();
+}
+
+async function refreshStats() {
+  const s = await api("/api/stats");
+  $("sCount").textContent = s.inspected;
+  $("sRate").textContent = (s.defect_rate * 100).toFixed(0) + "%";
+  $("sLat").textContent = s.inspected ? s.mean_latency_ms.toFixed(0) + " ms" : "–";
+}
+
+/* Upload + drag and drop */
+$("uploadBtn").onclick = () => $("fileInput").click();
+$("fileInput").onchange = (e) => { const f = e.target.files[0]; if (f) inspectBlob(f); e.target.value = ""; };
+const vp = $("viewport");
+vp.addEventListener("dragover", (e) => { e.preventDefault(); vp.classList.add("drag"); });
+vp.addEventListener("dragleave", () => vp.classList.remove("drag"));
+vp.addEventListener("drop", (e) => {
+  e.preventDefault(); vp.classList.remove("drag");
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith("image/")) inspectBlob(f); else showError("Drop an image file (JPG or PNG).");
+});
+$("opacity").oninput = (e) => ($("heatImg").style.opacity = e.target.value / 100);
+
+/* Live camera: grab a centred square frame whenever the previous inspection has finished */
+async function toggleCamera() {
+  const btn = $("camBtn");
+  if (state.camera) {
+    clearInterval(state.camTimer); state.camera.getTracks().forEach((t) => t.stop()); state.camera = null;
+    btn.textContent = "Start camera"; btn.classList.remove("live"); btn.classList.add("ghost");
+    return;
+  }
+  try {
+    state.camera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  } catch {
+    showError("Camera access was blocked. Allow camera access in your browser, or upload an image instead.");
+    return;
+  }
+  const video = $("video"); video.srcObject = state.camera; await video.play();
+  btn.textContent = "Stop camera"; btn.classList.add("live"); btn.classList.remove("ghost");
+  const canvas = document.createElement("canvas"); canvas.width = canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  state.camTimer = setInterval(() => {
+    if (state.busy || !video.videoWidth) return;
+    const s = Math.min(video.videoWidth, video.videoHeight);
+    ctx.drawImage(video, (video.videoWidth - s) / 2, (video.videoHeight - s) / 2, s, s, 0, 0, 512, 512);
+    canvas.toBlob((b) => b && inspectBlob(b, "camera"), "image/jpeg", 0.85);
+  }, 400);
+}
+$("camBtn").onclick = toggleCamera;
+$("resetBtn").onclick = async () => {
+  await api("/api/stats", { method: "DELETE" });
+  $("log").innerHTML = ""; $("logEmpty").hidden = false; refreshStats();
+};
+
+loadModels().then(refreshStats).catch((e) => showError("Could not reach the LoomGuard server: " + e.message));
+</script>
+</body>
+</html>

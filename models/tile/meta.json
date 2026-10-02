@@ -1,0 +1,34 @@
+{
+  "category": "tile",
+  "model": "stfpm-resnet18",
+  "img_size": 256,
+  "input": "RGB float32 in [0,1], NCHW",
+  "threshold": 0.0029392718570306897,
+  "val_mean": 0.0016223341226577759,
+  "val_std": 0.0004389792447909713,
+  "pixel_p50": 0.00040977136814035475,
+  "pixel_max": 0.0024979175068438053,
+  "metrics": {
+    "image_auroc": 0.9985994397759104,
+    "pixel_auroc": 0.9593956758047151,
+    "precision": 0.9882352941176471,
+    "recall": 1.0,
+    "f1": 0.9940828402366864,
+    "false_alarm_rate": 0.058823529411764705,
+    "oracle_best_f1": 0.9940828402366864,
+    "per_defect_detection": {
+      "crack": 1.0,
+      "glue_strip": 1.0,
+      "good": 0.9411764705882353,
+      "gray_stroke": 1.0,
+      "oil": 1.0,
+      "rough": 1.0
+    },
+    "fit_seconds": 250.7,
+    "gpu_latency_ms": 4.609011840002495,
+    "cpu_latency_ms": 36.401435000016136,
+    "onnx_size_mb": 21.2,
+    "onnx_rel_error": 8.755643676749969e-08
+  },
+  "trained_on": "MVTec AD (CC BY-NC-SA 4.0)"
+}
