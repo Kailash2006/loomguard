@@ -4,7 +4,7 @@
 
 Textile mills inspect fabric for holes, cuts, stains and broken threads, mostly by eye. Training a normal classifier for this needs thousands of labeled defect photos, and a mill rarely has them: defects are rare, and every new fabric brings new kinds of defects. LoomGuard sidesteps that. It learns what good fabric looks like, flags anything that doesn't, and shows *where* with a heatmap, all on an ordinary CPU.
 
-> Live demo: _add your Hugging Face Space URL here_ · Training notebook: _add your Kaggle notebook URL here_
+> Training notebook: [notebooks/loomguard_kaggle.ipynb](notebooks/loomguard_kaggle.ipynb) (Kaggle GPU) · Run the demo: `pip install -r app/requirements.txt && uvicorn app.server:app`
 
 <!-- Add a screen recording of the dashboard here: docs/demo.gif -->
 
