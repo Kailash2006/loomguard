@@ -4,7 +4,10 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
+import tempfile
 import time
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -46,6 +49,32 @@ def to_data_url(arr: np.ndarray, quality: int = 88) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
+# Where model files come from when they are not on disk (e.g. on Vercel, where the bundle excludes them).
+MODEL_URL = os.environ.get("LOOMGUARD_MODEL_URL",
+                           "https://raw.githubusercontent.com/Kailash2006/loomguard/main/models")
+CACHE_DIR = os.environ.get("LOOMGUARD_CACHE", os.path.join(tempfile.gettempdir(), "loomguard-models"))
+
+
+def model_file(model_dir: Path, name: str) -> Path:
+    """Return a local path to a model file, downloading it from MODEL_URL once if it isn't on disk."""
+    local = Path(model_dir) / name
+    if local.is_file():
+        return local
+    cached = Path(CACHE_DIR) / Path(model_dir).name / name
+    if not cached.is_file():
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        tmp = cached.with_suffix(cached.suffix + ".part")
+        with urllib.request.urlopen(f"{MODEL_URL}/{Path(model_dir).name}/{name}", timeout=120) as resp, open(tmp, "wb") as f:
+            while chunk := resp.read(1 << 20):
+                f.write(chunk)
+        tmp.replace(cached)
+    return cached
+
+
+def read_meta(model_dir: Path) -> dict:
+    return json.loads((Path(model_dir) / "meta.json").read_text())
+
+
 @dataclass
 class Inspection:
     category: str
@@ -65,15 +94,15 @@ class Inspection:
 class LoomGuardModel:
     def __init__(self, model_dir: Path, threads: int | None = None):
         self.dir = Path(model_dir)
-        self.meta = json.loads((self.dir / "meta.json").read_text())
+        self.meta = read_meta(self.dir)
         opts = ort.SessionOptions()
         if threads:
             opts.intra_op_num_threads = threads
-        self.session = ort.InferenceSession(str(self.dir / self.meta.get("onnx_file", "stfpm.onnx")), opts,
-                                            providers=["CPUExecutionProvider"])
+        onnx_path = model_file(self.dir, self.meta.get("onnx_file", "stfpm.onnx"))
+        self.session = ort.InferenceSession(str(onnx_path), opts, providers=["CPUExecutionProvider"])
         # PatchCore models take their memory bank as a second input.
         bank_file = self.meta.get("bank_file")
-        self.extra = {"bank": np.load(self.dir / bank_file).astype(np.float32)} if bank_file else {}
+        self.extra = {"bank": np.load(model_file(self.dir, bank_file)).astype(np.float32)} if bank_file else {}
         self.model_name = self.meta.get("model", "stfpm-resnet18")
         self.size = int(self.meta["img_size"])
         self.category = self.meta["category"]
@@ -111,13 +140,5 @@ def discover_models(models_root: Path) -> dict[str, Path]:
     root = Path(models_root)
     if not root.is_dir():
         return {}
-    found = {}
-    for p in sorted(root.iterdir()):
-        meta_path = p / "meta.json"
-        if not meta_path.is_file():
-            continue
-        meta = json.loads(meta_path.read_text())
-        files = [meta.get("onnx_file", "stfpm.onnx")] + ([meta["bank_file"]] if meta.get("bank_file") else [])
-        if all((p / f).is_file() for f in files):
-            found[p.name] = p
-    return found
+    # A category is available when its meta.json exists; weight files are fetched on demand if missing.
+    return {p.name: p for p in sorted(root.iterdir()) if (p / "meta.json").is_file()}
