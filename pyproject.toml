@@ -1,0 +1,10 @@
+[project]
+name = "loomguard"
+version = "1.0.0"
+description = "Unsupervised fabric defect detection with live heatmaps"
+requires-python = ">=3.12,<3.13"
+dependencies = ["fastapi>=0.110", "python-multipart>=0.0.9", "onnxruntime>=1.17", "pillow>=10.0", "numpy>=1.26"]
+
+# Vercel: the FastAPI app lives in app/server.py
+[tool.vercel]
+entrypoint = "app.server:app"
