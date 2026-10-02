@@ -8,3 +8,7 @@ dependencies = ["fastapi>=0.110", "python-multipart>=0.0.9", "onnxruntime>=1.17"
 # Vercel: the FastAPI app lives in app/server.py
 [tool.vercel]
 entrypoint = "app.server:app"
+
+# uv (used by Vercel): this is an application, not a library to package
+[tool.uv]
+package = false
