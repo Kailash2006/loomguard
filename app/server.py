@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
 
-from .inference import LoomGuardModel, discover_models
+from .inference import LoomGuardModel, discover_models, read_meta
 
 ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = Path(os.environ.get("LOOMGUARD_MODELS", ROOT / "models"))
@@ -45,7 +45,7 @@ def get_model(category: str) -> LoomGuardModel:
 def list_models():
     out = []
     for name, path in _paths.items():
-        meta = get_model(name).meta
+        meta = read_meta(path)          # metadata only; models load lazily on first inspection
         m = meta.get("metrics", {})
         out.append({"category": name, "threshold": meta["threshold"], "model": meta.get("model", "stfpm-resnet18"),
                     "image_auroc": m.get("image_auroc"), "pixel_auroc": m.get("pixel_auroc"),
@@ -53,7 +53,7 @@ def list_models():
     # Open the demo on the category where the deployed model performs best (or LOOMGUARD_DEFAULT if set).
     default = os.environ.get("LOOMGUARD_DEFAULT")
     if default not in _paths:
-        default = max(out, key=lambda m: get_model(m["category"]).meta.get("metrics", {}).get("f1", 0))["category"] if out else None
+        default = max(out, key=lambda m: read_meta(_paths[m["category"]]).get("metrics", {}).get("f1", 0))["category"] if out else None
     return {"models": out, "default": default}
 
 
